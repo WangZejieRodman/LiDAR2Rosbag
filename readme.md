@@ -8,12 +8,12 @@
 
 ```bash
 source ./devel/setup.bash
-rosrun rosrun lidar2rosbag lidar2rosbag path output.bag xyz -yxz
+rosrun lidar2rosbag input_path output_path/文件名 xyz -yxz
 ```
 
-`path` 是雷达点云存储的目录，默认以 `.pcd`格式为结尾，如果需要可以在程序中改成别的格式
+`input_path` 是雷达点云存储的目录，默认以 `.pcd`格式为结尾，如果需要可以在程序中改成别的格式
 
-`output.bag` 是保存的rosbag包的地方
+`output_path` 是保存的rosbag包的地方，最终输出“文件名.bag“
 
 `xyz` 可选参数，输入的雷达坐标顺序，按照 **右-前-上** 的顺序进行。比如 *xyz* 就代表 x向右 y向前 z向上
 
