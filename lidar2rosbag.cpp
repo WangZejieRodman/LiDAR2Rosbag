@@ -34,6 +34,8 @@ using namespace std;
  * @param fileType {string} 遍历的文件的后缀
  * @return {*}
  */
+int stringToInt(const string& s); 
+bool naturalSortCompare(const string& a, const string& b);
 void IterateFiles(string pathName, vector<string> &fileNames, string fileType);
 
 // int 数字转字符串
@@ -89,25 +91,31 @@ int main(int argc, char **argv) {
     }
 
 
-    vector<string> pcd_names;
-    IterateFiles(input_path, pcd_names, ".pcd");
-    if(pcd_names.size() == 0)
-        cout << "no pcd in " << input_path << endl;
-
+    vector<string> ply_names;
+    IterateFiles(input_path, ply_names, ".ply");
+    if(ply_names.size() == 0)
+        cout << "no ply in " << input_path << endl;
+        
+    // 遍历并打印排序后的文件名
+    cout << "Sorted file names:" << endl;
+    for (const auto& fileName : ply_names) {
+        cout << fileName << endl;
+    }
+    
     rosbag::Bag bag;
     bag.open(output_file + ".bag", rosbag::bagmode::Write);
 
     ros::Time base_time = ros::Time::now();
 
-    for(int i = 0; i < pcd_names.size(); i ++)
+    for(int i = 0; i < ply_names.size(); i ++)
     {
         pcl::PointCloud<pcl::PointXYZI>::Ptr lidarPoints(new pcl::PointCloud<pcl::PointXYZI>);
-        if(pcl::io::loadPCDFile<pcl::PointXYZI>(pcd_names[i], *lidarPoints) == -1)
+        if(pcl::io::loadPLYFile<pcl::PointXYZI>(ply_names[i], *lidarPoints) == -1)
         {
-            std::cout << "Fail to load point at " << pcd_names[i] << std::endl;
+            std::cout << "Fail to load point at " << ply_names[i] << std::endl;
             return -1;
         }
-        pcl::transformPointCloud(*lidarPoints, *lidarPoints, transformation);
+        //pcl::transformPointCloud(*lidarPoints, *lidarPoints, transformation);
 
         ros::Time timestamp_ros = base_time + ros::Duration(0.1 * i);      // 每秒10帧，所以每次增加0.1秒
         double time = timestamp_ros.toSec();
@@ -123,7 +131,7 @@ int main(int argc, char **argv) {
 
         bag.write("/velodyne_points", timestamp_ros, output);
         // std::cout<<"ros time : "<< output.header.stamp.toSec() <<"  with  "<<timestamp_ros.toSec() << std::endl;
-        cout << i  << " / " << pcd_names.size() << endl;
+        cout << i  << " / " << ply_names.size() << endl;
 
     }
     bag.close();
@@ -155,7 +163,7 @@ void IterateFiles(string pathName, vector<string> &fileNames, string fileType)
             fileNames.insert(fileNames.end(), names.begin(), names.end());
         }
     }
-    sort(fileNames.begin(), fileNames.end(), std::less<std::string>());
+    sort(fileNames.begin(), fileNames.end(), naturalSortCompare);
 }
 
 // convert a int to a string
@@ -169,6 +177,36 @@ string int2str(int num) {
         cout << "[float2str] - Code error" << endl;
         exit(0);
     }
+}
+
+// 辅助函数：将字符串的数字部分转换为整数，非数字返回0
+int stringToInt(const string& s) {
+    try {
+        return stoi(s);
+    } catch (const std::invalid_argument& e) {
+        return 0;
+    } catch (const std::out_of_range& e) {
+        return 0;
+    }
+}
+
+// 自定义比较函数，实现自然排序
+bool naturalSortCompare(const string& a, const string& b) {
+    int i = 0, j = 0;
+    while (i < a.size() && j < b.size()) {
+        if (isdigit(a[i]) && isdigit(b[j])) {
+            string numStrA, numStrB;
+            while (i < a.size() && isdigit(a[i])) numStrA += a[i++];
+            while (j < b.size() && isdigit(b[j])) numStrB += b[j++];
+            int numA = stringToInt(numStrA);
+            int numB = stringToInt(numStrB);
+            if (numA != numB) return numA < numB;
+        } else {
+            if (a[i] != b[j]) return a[i] < b[j];
+            ++i; ++j;
+        }
+    }
+    return a.size() < b.size();
 }
 
 vector<string> SplitString(const string& str)
